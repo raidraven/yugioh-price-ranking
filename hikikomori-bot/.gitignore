@@ -1,0 +1,4 @@
+# .envファイルはGitにコミットしないこと
+.env
+__pycache__/
+*.pyc

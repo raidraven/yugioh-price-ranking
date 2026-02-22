@@ -1,0 +1,52 @@
+﻿{% extends "base.html" %}
+{% load yugioh_filters %}
+{% block title %}カード検索{% if query %} — {{ query }}{% endif %} | 遊戯王カード価格比較{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="hex-decoration">⬡</div>
+  <h1 class="page-title">カード検索</h1>
+  <p class="page-subtitle">カード名を入力してください</p>
+</div>
+<div class="search-hero">
+  <form action="{% url 'cards:search' %}" method="get" class="search-form-large" role="search">
+    <div class="search-input-wrap"><input type="search" name="q" id="main-search-input"
+        placeholder="カード名を入力 (例: ブラック・マジシャン、青眼の白龍)" value="{{ query }}" autofocus autocomplete="off"
+        aria-label="カード名検索"><button type="submit" class="search-btn-large" id="search-submit-btn">検索</button></div>
+    <p class="search-hint">※ カードが見つからない場合はデータベースから自動取得されます</p>
+  </form>
+</div>
+{% if query %}
+<div class="search-results-section">
+  <h2 class="results-heading">{% if results %}「{{ query }}」の検索結果 — {{ results|length }} 件{% elif not_found %}「{{ query
+    }}」は見つかりませんでした{% endif %}</h2>
+  {% if results %}
+  <div class="search-grid" id="search-results-grid">
+    {% for card in results %}
+    <a href="{% url 'cards:card_detail' card.card_id %}" class="search-card-item" id="card-{{ card.card_id }}">
+      <div class="search-card-img">{% if card.image_url_small %}<img src="{{ card.image_url_small }}"
+          alt="{{ card.name_ja|default:card.name }}" loading="lazy">{% else %}<div class="card-img-placeholder-sm">☆
+        </div>{% endif %}</div>
+      <div class="search-card-info">
+        <h3 class="search-card-name">{{ card.name_ja|default:card.name }}</h3>
+        <div class="search-card-meta"><span class="card-id-badge">ID: {{ card.card_id }}</span><span
+            class="type-chip">{{ card.card_type|card_type_ja }}</span>{% if card.attribute %}<span class="attr-chip">{{
+            card.attribute|attribute_ja }}</span>{% endif %}</div>
+        <p class="search-card-desc">{{ card.description_ja|default:card.description|truncatewords:15 }}</p>
+        <span class="btn-secondary"
+          style="margin-top:0.5rem; display:inline-block; font-size:0.8rem; padding:0.3rem 0.8rem;">詳細を見る</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% elif not_found %}
+  <div class="not-found-box">
+    <div class="not-found-icon">🃏</div>
+    <h3>カードが見つかりませんでした</h3>
+    <p>「{{ query }}」に一致するカードはデータベースに存在しないか、英語名での検索をお試しください。</p>
+    <p class="hint-text">例: 「Dark Magician」「Blue-Eyes White Dragon」など</p><a href="{% url 'cards:search' %}"
+      class="btn-primary" id="search-again-btn">再検索</a>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

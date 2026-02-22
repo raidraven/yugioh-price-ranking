@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% load static yugioh_filters %}
+{% block title %}デッキ価格計算機 | 遊戯王カード{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div class="hex-decoration">⬡</div>
+    <h1 class="page-title">デッキ価格計算機</h1>
+    <p class="page-subtitle">デッキリストから合計費用を素早く試算</p>
+</div>
+
+<div class="ocr-disclaimer">
+    ⚠️ <strong>精度について：</strong>
+    画像読み取り（OCR）はマスターデュエル・デッキビルダーのスクリーンショットに最適化されています。
+    実物カードの写真や斜め撮影など、<strong>画像の種類によっては認識精度が低下する</strong>場合があります。
+    認識できなかったカードはテキスト入力でご再入力ください。
+</div>
+
+<div class="calc-card">
+    <div class="tab-bar" role="tablist">
+        <button class="tab-btn {% if input_type == 'text' or not input_type %}active{% endif %}"
+            onclick="switchTab('text')" role="tab" id="tab-text">📝 テキスト入力</button>
+        <button class="tab-btn {% if input_type == 'ydke' %}active{% endif %}" onclick="switchTab('ydke')" role="tab"
+            id="tab-ydke">🔗 YDKEリンク</button>
+        <button class="tab-btn {% if input_type == 'image' %}active{% endif %}" onclick="switchTab('image')" role="tab"
+            id="tab-image">🖼 画像アップロード</button>
+    </div>
+
+    <!-- Text input -->
+    <form method="post" enctype="multipart/form-data" id="calc-form-text"
+        class="tab-panel {% if input_type == 'text' or not input_type %}active{% endif %}">
+        {% csrf_token %}<input type="hidden" name="input_type" value="text">
+        <label class="field-label" for="deck-text-area">カード名を1行1枚で入力（枚数も指定可）</label>
+        <div class="input-hint">例: <code>3 ブラック・マジシャン</code> または <code>Dark Magician x3</code> または <code>死者蘇生</code>
+        </div>
+        <textarea id="deck-text-area" name="deck_text" class="deck-textarea" rows="12"
+            placeholder="3 ブラック・マジシャン&#10;2 青眼の白龍&#10;死者蘇生&#10;鏡の力">{{ deck_text }}</textarea>
+        <button type="submit" class="calc-btn">💰 価格を計算する</button>
+    </form>
+
+    <!-- YDKE -->
+    <form method="post" enctype="multipart/form-data" id="calc-form-ydke"
+        class="tab-panel {% if input_type == 'ydke' %}active{% endif %}">
+        {% csrf_token %}<input type="hidden" name="input_type" value="ydke">
+        <label class="field-label" for="ydke-input">YDKE リンク</label>
+        <div class="input-hint">マスターデュエル・YGOPRODeck 等でデッキをエクスポートした <code>ydke://</code> で始まるURL</div>
+        <input type="url" id="ydke-input" name="ydke_url" class="ydke-input" placeholder="ydke://..."
+            value="{{ ydke_url }}">
+        <button type="submit" class="calc-btn">💰 価格を計算する</button>
+    </form>
+
+    <!-- Image upload -->
+    <form method="post" enctype="multipart/form-data" id="calc-form-image"
+        class="tab-panel {% if input_type == 'image' %}active{% endif %}">
+        {% csrf_token %}<input type="hidden" name="input_type" value="image">
+        <label class="field-label">デッキ画面の画像をアップロード</label>
+        <div class="image-accuracy-note">
+            📌 <strong>精度が高い画像：</strong>マスターデュエルのデッキ一覧画面、YGOPRODeckのデッキメーカー画像<br>
+            📌 <strong>精度が低い画像：</strong>実物カードの写真、斜め撮影、手書きリスト
+        </div>
+        <div class="upload-zone" id="upload-zone" onclick="document.getElementById('image-input').click()">
+            <div class="upload-icon">📁</div>
+            <p class="upload-label">クリックまたはドラッグ＆ドロップ</p>
+            <p class="upload-sub">PNG / JPG / WEBP 対応</p>
+            <p class="upload-filename" id="upload-filename"></p>
+        </div>
+        <input type="file" id="image-input" name="deck_image" accept="image/*" style="display:none"
+            onchange="onFileSelected(this)">
+        <button type="submit" class="calc-btn" id="image-submit-btn" disabled>🔍 画像を解析する</button>
+    </form>
+</div>
+
+{% if error %}
+<div class="calc-error"><span>⚠️</span>
+    <div>{{ error|linebreaksbr }}</div>
+</div>
+{% endif %}
+
+{% if ocr_raw %}
+<details class="ocr-raw-details">
+    <summary>📄 OCR 読み取り結果（生テキスト）</summary>
+    <pre class="ocr-raw">{{ ocr_raw }}</pre>
+</details>
+{% endif %}
+
+{% if show_results %}
+<section class="results-section">
+    <h2 class="section-title">📊 計算結果</h2>
+
+    {% if results %}
+    <div class="results-table-wrap">
+        <table class="results-table" id="deck-results-table">
+            <thead>
+                <tr>
+                    <th>カード</th>
+                    <th>カード名</th>
+                    <th>枚数</th>
+                    <th>1枚の参考価格</th>
+                    <th>小計</th>
+                    <th>収録セット</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in results %}
+                <tr>
+                    <td class="thumb-cell">
+                        {% if r.card.image_url_small %}
+                        <img src="{{ r.card.image_url_small }}" alt="{{ r.card.name_ja|default:r.card.name }}"
+                            class="result-thumb" loading="lazy">
+                        {% else %}<div class="result-thumb-placeholder">☆</div>{% endif %}
+                    </td>
+                    <td class="card-name-cell">
+                        <a href="{% url 'cards:card_detail' r.card.card_id %}" class="result-card-link">
+                            {{ r.card.name_ja|default:r.card.name }}
+                        </a>
+                        {% if r.card.name_ja %}<br><span class="result-en-name">{{ r.card.name }}</span>{% endif %}
+                        <div class="result-chips">
+                            <span class="type-chip">{{ r.card.card_type|card_type_ja }}</span>
+                            {% if r.best_set %}<span class="rarity-badge-sm">{{ r.best_set.set_rarity|rarity_ja
+                                }}</span>{% endif %}
+                        </div>
+                    </td>
+                    <td class="count-cell"><span class="count-badge">×{{ r.count }}</span></td>
+                    <td class="unit-price-cell">
+                        {% if r.price_jpy %}
+                        <strong class="price-jpy">¥{{ r.price_jpy|floatformat:0 }}</strong>
+                        {% if r.best_set %}<div class="price-source-note">{{ r.best_set.min_price_source|source_ja }}
+                        </div>{% endif %}
+                        {% else %}<span class="no-price-sm">取得不可</span>{% endif %}
+                    </td>
+                    <td class="subtotal-cell">
+                        {% if r.subtotal_jpy %}<strong class="price-jpy">¥{{ r.subtotal_jpy|floatformat:0 }}</strong>{%
+                        else %}—{% endif %}
+                    </td>
+                    <td class="set-cell">
+                        {% if r.best_set %}<span class="set-name-sm">{{
+                            r.best_set.set_name_ja|default:r.best_set.set_name }}</span>{% else %}—{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="4" class="total-label">合計（参考価格）</td>
+                    <td colspan="2" class="total-price">¥{{ total_jpy|floatformat:0 }}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <div class="total-box">
+        <div class="total-box-label">デッキ合計 参考価格</div>
+        <div class="total-box-price">¥{{ total_jpy|floatformat:0 }}</div>
+        <div class="total-box-note">
+            ※ 国際市場（TCGプレイヤー・カードマーケット等）の参照価格を円換算した目安です。<br>
+            国内実売価格とは異なる場合があります。
+        </div>
+    </div>
+    {% endif %}
+
+    {% if not_found %}
+    <div class="not-found-section">
+        <h3 class="not-found-title">⚠️ 見つからなかったカード（{{ not_found|length }}件）</h3>
+        <p class="not-found-desc">カード名が一致しないか、データベースに未登録の可能性があります。スペルを確認のうえテキスト入力でご再入力ください。</p>
+        <ul class="not-found-list">{% for name in not_found %}<li>{{ name }}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+
+    {% if not results and not not_found and not error %}
+    <div class="empty-state">
+        <div class="empty-emblem">🃏</div>
+        <h2>カードが見つかりませんでした</h2>
+        <p>入力内容を確認してください。</p>
+    </div>
+    {% endif %}
+</section>
+{% endif %}
+
+<script>
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById('tab-' + tab).classList.add('active');
+        document.getElementById('calc-form-' + tab).classList.add('active');
+    }
+    function onFileSelected(input) {
+        const fn = input.files[0] ? input.files[0].name : '';
+        document.getElementById('upload-filename').textContent = fn;
+        document.getElementById('image-submit-btn').disabled = !fn;
+        if (fn) document.getElementById('upload-zone').classList.add('has-file');
+    }
+    const zone = document.getElementById('upload-zone');
+    if (zone) {
+        zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+        zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+        zone.addEventListener('drop', e => {
+            e.preventDefault(); zone.classList.remove('dragover');
+            const f = e.dataTransfer.files[0];
+            if (f) {
+                const inp = document.getElementById('image-input');
+                const dt = new DataTransfer(); dt.items.add(f); inp.files = dt.files;
+                onFileSelected(inp);
+            }
+        });
+    }
+</script>
+{% endblock %}

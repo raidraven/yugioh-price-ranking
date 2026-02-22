@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}カードが見つかりません | 遊戯王カード価格比較{% endblock %}
+
+{% block content %}
+<div class="not-found-page">
+    <div class="not-found-emblem">🃏</div>
+    <h1>カードが見つかりません</h1>
+    <p>ID「{{ card_id }}」のカードは存在しないか、まだデータベースに登録されていません。</p>
+    <div class="not-found-actions">
+        <a href="{% url 'cards:search' %}" class="btn-primary">カードを検索する</a>
+        <a href="{% url 'cards:ranking' %}" class="btn-secondary">ランキングに戻る</a>
+    </div>
+</div>
+{% endblock %}

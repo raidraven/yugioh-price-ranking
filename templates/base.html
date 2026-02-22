@@ -1,0 +1,108 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}遊戯王カード最安値ランキング{% endblock %}</title>
+  <meta name="description" content="遊戯王カードの最安値をランキング形式で比較表示。カード情報・価格・レアリティを一覧で確認できます。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Noto+Sans+JP:wght@300;400;500;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+
+<body>
+
+  <!-- Star field background -->
+  <div class="stars" id="stars"></div>
+  <div class="stars2" id="stars2"></div>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="{% url 'cards:ranking' %}" class="site-logo">
+        <div class="logo-emblem">☆</div>
+        <div class="logo-text">
+          <span class="logo-main">Yu-Gi-Oh!</span>
+          <span class="logo-sub">最安値ランキング</span>
+        </div>
+      </a>
+
+      <form action="{% url 'cards:search' %}" method="get" class="header-search" role="search">
+        <input type="search" name="q" id="header-search-input" placeholder="カード名で検索... (例: ブラック・マジシャン)"
+          value="{{ request.GET.q|default:'' }}" autocomplete="off" aria-label="カード検索">
+        <button type="submit" class="search-btn" aria-label="検索">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+          </svg>
+        </button>
+      </form>
+
+      <nav class="site-nav">
+        <a href="{% url 'cards:ranking' %}"
+          class="nav-link {% if request.resolver_match.url_name == 'ranking' %}active{% endif %}">ランキング</a>
+        <a href="{% url 'cards:search' %}"
+          class="nav-link {% if request.resolver_match.url_name == 'search' %}active{% endif %}">カード検索</a>
+        <a href="{% url 'cards:deck_calculator' %}"
+          class="nav-link {% if request.resolver_match.url_name == 'deck_calculator' %}active{% endif %}">デッキ計算機</a>
+        <a href="{% url 'cards:inquiry' %}"
+          class="nav-link {% if request.resolver_match.url_name == 'inquiry' %}active{% endif %}">お問い合わせ</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main content -->
+  <main class="main-content">
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-emblem">✦</div>
+      <p class="footer-text">
+        カード価格データは <a href="https://ygoprodeck.com" target="_blank" rel="noopener">YGOPRODeck API</a> を利用しています。
+      </p>
+      <p class="footer-disclaimer">
+        遊戯王カードは© KONAMI。本サイトはKONAMIとは無関係のファンサイトです。
+      </p>
+    </div>
+  </footer>
+
+  <script>
+    // Generate starfield
+    function createStars(containerId, count) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      for (let i = 0; i < count; i++) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        star.style.cssText = `
+          left: ${Math.random() * 100}%;
+          top: ${Math.random() * 100}%;
+          width: ${Math.random() * 3 + 1}px;
+          height: ${Math.random() * 3 + 1}px;
+          animation-delay: ${Math.random() * 3}s;
+          animation-duration: ${Math.random() * 3 + 2}s;
+        `;
+        container.appendChild(star);
+      }
+    }
+    createStars('stars', 120);
+    createStars('stars2', 60);
+  </script>
+  {% block extra_js %}{% endblock %}
+</body>
+
+</html>

@@ -1,0 +1,85 @@
+﻿{% extends "base.html" %}
+{% load static yugioh_filters %}
+{% block title %}{{ card.name_ja|default:card.name }} | 遊戯王カード{% endblock %}
+{% block content %}
+<div class="card-detail-page">
+  <nav class="breadcrumb"><a href="{% url 'cards:ranking' %}">ランキング</a><span>›</span><span>{{
+      card.name_ja|default:card.name }}</span></nav>
+  <div class="card-detail-layout">
+    <aside class="card-visual-col">
+      <div class="card-detail-img-wrap" id="artwork-display">
+        {% with artworks.first as first_art %}{% if first_art %}<img src="{{ first_art.image_url }}"
+          alt="{{ card.name_ja|default:card.name }}" class="card-detail-img" id="main-card-img">{% elif card.image_url
+        %}<img src="{{ card.image_url }}" alt="{{ card.name_ja|default:card.name }}" class="card-detail-img"
+          id="main-card-img">{% else %}<div class="card-img-placeholder-lg"><span>☆</span>
+          <p>画像なし</p>
+        </div>{% endif %}{% endwith %}
+        <div class="card-detail-glow"></div>
+      </div>
+      {% if artworks.count > 1 %}
+      <div class="artwork-switcher" id="artwork-switcher">
+        <p class="switcher-label">🖼 アートワーク選択</p>
+        <div class="artwork-thumbs">
+          {% for art in artworks %}
+          <button class="art-thumb-btn {% if forloop.first %}active{% endif %}"
+            onclick="switchArt('{{ art.image_url }}',this)" title="{{ art.label }}">
+            <img src="{{ art.image_url_small }}" alt="{{ forloop.counter }}" loading="lazy">
+            <span class="art-label">{% if forloop.first %}通常{% else %}{% if art.is_ocg %}OCG{% endif %}{{
+              forloop.counter }}{% endif %}</span>
+          </button>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </aside>
+    <div class="card-detail-main">
+      <header class="card-detail-header">
+        <h1 class="card-detail-name">{{ card.name_ja|default:card.name }}</h1>
+        <div class="card-stats-inline">
+          {% if card.atk is not None %}<div class="stat-inline"><span>攻撃力</span><span class="stat-v atk">{{ card.atk
+              }}</span></div>{% endif %}
+          {% if card.def_points is not None %}<div class="stat-inline"><span>守備力</span><span class="stat-v def">{{
+              card.def_points }}</span></div>{% endif %}
+          {% if card.linkval is not None %}<div class="stat-inline"><span>リンク</span><span class="stat-v lv">{{
+              card.linkval }} {{ card.linkmarkers|link_arrows }}</span></div>
+          {% elif card.level is not None %}
+          {% if 'xyz' in card.card_type|lower or 'Xyz' in card.card_type %}<div class="stat-inline">
+            <span>ランク</span><span class="stat-v lv">★{{ card.level }}</span>
+          </div>{% else %}<div class="stat-inline">
+            <span>レベル</span><span class="stat-v lv">★{{ card.level }}</span>
+          </div>{% endif %}
+          {% endif %}
+          {% if card.scale is not None %}<div class="stat-inline"><span>Pスケール</span><span class="stat-v lv"
+              style="color:#00c4cc;">♦ {{ card.scale }}</span></div>{% endif %}
+        </div>
+        <div class="card-detail-badges">
+          <span class="card-id-badge-lg">ID: {{ card.card_id }}</span>
+          <span class="type-chip" style="font-weight:bold;">{{ card|detailed_race }}</span>
+          {% if card.attribute %}<span class="attr-chip">{{ card.attribute|attribute_ja }}</span>{% endif %}
+        </div>
+      </header>
+      <section class="card-effect-section">
+        <h2 class="section-title">カード効果</h2>
+        <div class="card-effect-box">
+          <p>{{ card.description_ja|default:card.description|linebreaksbr }}</p>
+        </div>
+      </section>
+      <section class="shop-links-section" style="margin-top: 2rem;">
+        <h2 class="section-title">最新価格の検索</h2>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;">
+          <a href="https://shopping.yahoo.co.jp/search?p={{ card.name|urlencode }}&first=1" target="_blank"
+            rel="noopener noreferrer"
+            style="flex: 1; display: inline-block; padding: 1rem; text-align: center; background: #ff0033; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; border: 1px solid rgba(255,255,255,0.2);">
+            <i class="fas fa-shopping-cart"></i> ヤフーショッピングで検索
+          </a>
+          <a href="https://www.amazon.co.jp/s?k={{ card.name|urlencode }}+遊戯王" target="_blank" rel="noopener noreferrer"
+            style="flex: 1; display: inline-block; padding: 1rem; text-align: center; background: #FF9900; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; border: 1px solid rgba(255,255,255,0.2);">
+            <i class="fab fa-amazon"></i> Amazonで検索
+          </a>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+<script>function switchArt(url, btn) { document.getElementById('main-card-img').src = url; document.querySelectorAll('.art-thumb-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }</script>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}お問い合わせ | 遊戯王カード価格比較{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="hex-decoration">⬡</div>
+    <h1 class="page-title">お問い合わせ</h1>
+    <p class="page-subtitle">ご意見・ご要望をお寄せください</p>
+</div>
+
+<div class="content-wrapper" style="max-width: 600px; margin: 0 auto; padding: 2rem 1rem;">
+    {% if messages %}
+    <div style="margin-bottom: 2rem;">
+        {% for message in messages %}
+        <div
+            style="padding: 1rem; border-radius: 8px; margin-bottom: 1rem; {% if message.tags == 'success' %}background: rgba(0, 255, 136, 0.1); border: 1px solid #00ff88; color: #00ff88;{% else %}background: rgba(255, 0, 51, 0.1); border: 1px solid #ff0033; color: #ff0033;{% endif %}">
+            {{ message }}
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post" action="{% url 'cards:inquiry' %}" class="card-detail-board" style="padding: 2rem;">
+            {% csrf_token %}
+
+            <div style="margin-bottom: 1.5rem;">
+                <label for="name" style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">お名前 <span
+                        style="color:#ff0033;">*</span></label>
+                <input type="text" id="name" name="name" required
+                    style="width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: white;">
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label for="email" style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">メールアドレス
+                    <span style="color:#ff0033;">*</span></label>
+                <input type="email" id="email" name="email" required
+                    style="width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: white;">
+            </div>
+
+            <div style="margin-bottom: 2rem;">
+                <label for="message" style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">お問い合わせ内容
+                    <span style="color:#ff0033;">*</span></label>
+                <textarea id="message" name="message" rows="6" required
+                    style="width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: white; resize: vertical;"></textarea>
+            </div>
+
+            <div style="text-align: center;">
+                <button type="submit" class="btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem;">
+                    <i class="fas fa-paper-plane" style="margin-right: 0.5rem;"></i> 送信する
+                </button>
+            </div>
+        </form>
+    </div>
+    {% endblock %}

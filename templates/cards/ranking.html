@@ -1,0 +1,63 @@
+﻿{% extends "base.html" %}
+{% load static yugioh_filters %}
+{% block title %}人気カードランキング | 遊戯王カード価格比較{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="hex-decoration">⬡</div>
+  <h1 class="page-title">人気カード TOP 10</h1>
+  <p class="page-subtitle">アクセス数ランキング</p>
+  {% if last_updated %}<p class="last-updated">更新: {{ last_updated|date:"Y年m月d日 H:i" }} JST</p>{% endif %}
+</div>
+{% if top10 %}
+<section class="ranking-section">
+  <div class="ranking-grid">
+    {% for cs in top10 %}
+    <article class="ranking-card" onclick="location.href='{% url 'cards:card_detail' cs.card.card_id %}'">
+      <div class="rank-badge {% if forloop.counter <= 3 %}rank-top3{% endif %}">
+        {% if forloop.counter == 1 %}🥇
+        {% elif forloop.counter == 2 %}🥈
+        {% elif forloop.counter == 3 %}🥉
+        {% else %}#{{ forloop.counter }}
+        {% endif %}
+      </div>
+      <div class="card-img-wrap">
+        {% if cs.card.image_url_small %}
+        <img src="{{ cs.card.image_url_small }}" alt="{{ cs.card.name_ja|default:cs.card.name }}" class="card-thumbnail"
+          loading="lazy">
+        {% else %}
+        <div class="card-img-placeholder"><span>☆</span></div>
+        {% endif %}
+        <div class="card-img-glow"></div>
+      </div>
+      <div class="card-info">
+        <h2 class="card-name">{{ cs.card.name_ja|default:cs.card.name }}</h2>
+        <div class="card-meta-row">
+          <span class="card-id-badge">ID: {{ cs.card.card_id }}</span>
+          <span class="rarity-badge">{{ cs.set_rarity|rarity_ja }}</span>
+        </div>
+        <div class="card-type-row">
+          <span class="type-chip">{{ cs.card.card_type|card_type_ja }}</span>
+          {% if cs.card.attribute %}<span class="attr-chip">{{ cs.card.attribute|attribute_ja }}</span>{% endif %}
+          {% if cs.card.race %}<span class="race-chip">{{ cs.card.race|race_ja }}</span>{% endif %}
+        </div>
+        <p class="card-desc-short">{{ cs.card.description_ja|default:cs.card.description|truncatewords:18 }}</p>
+      </div>
+      <div class="price-panel" style="display:flex; align-items:center; justify-content:center; padding: 1rem;">
+        <span class="btn-secondary" style="font-size:0.9rem; padding:0.5rem 1rem;">詳細と最新価格を見る</span>
+      </div>
+      <div class="set-info">{{ cs.set_name_ja|default:cs.set_name }} ({{ cs.set_code }})</div>
+      <a href="{% url 'cards:card_detail' cs.card.card_id %}" class="detail-btn">詳細を見る →</a>
+  </div>
+  </article>
+  {% endfor %}
+  </div>
+</section>
+{% else %}
+<div class="empty-state">
+  <div class="empty-emblem">☰</div>
+  <h2>カードを読み込み中...</h2>
+  <p>初回アクセス時はデータを取得しています。少々お待ちください。</p>
+  <a href="{% url 'cards:ranking' %}" class="btn-primary">再読み込み</a>
+</div>
+{% endif %}
+{% endblock %}
