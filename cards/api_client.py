@@ -85,10 +85,11 @@ def search_cards_by_name(fname: str) -> list[dict]:
 
 def search_cards_ja_by_name(fname: str) -> list[dict]:
     """
-    Fuzzy-name search for Japanese names.
+    Exact-name search for Japanese names to avoid 400 Bad Request.
+    YGOPRODeck API throws 400 if fname (fuzzy) and language=ja are combined.
     Returns list of Japanese card dicts.
     """
-    data = _get('cardinfo.php', {'fname': fname, 'language': 'ja', 'misc': 'yes'})
+    data = _get('cardinfo.php', {'name': fname, 'language': 'ja', 'misc': 'yes'})
     if data and 'data' in data:
         return data['data']
     return []

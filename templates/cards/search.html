@@ -12,13 +12,17 @@
     <div class="search-input-wrap"><input type="search" name="q" id="main-search-input"
         placeholder="カード名を入力 (例: ブラック・マジシャン、青眼の白龍)" value="{{ query }}" autofocus autocomplete="off"
         aria-label="カード名検索"><button type="submit" class="search-btn-large" id="search-submit-btn">検索</button></div>
-    <p class="search-hint">※ カードが見つからない場合はデータベースから自動取得されます</p>
   </form>
 </div>
 {% if query %}
 <div class="search-results-section">
-  <h2 class="results-heading">{% if results %}「{{ query }}」の検索結果 — {{ results|length }} 件{% elif not_found %}「{{ query
-    }}」は見つかりませんでした{% endif %}</h2>
+  <h2 class="results-heading">
+    {% if results %}
+    「{{ query }}」の検索結果 — {{ results|length }} 件
+    {% elif not_found %}
+    「{{ query }}」は見つかりませんでした
+    {% endif %}
+  </h2>
   {% if results %}
   <div class="search-grid" id="search-results-grid">
     {% for card in results %}
@@ -28,9 +32,13 @@
         </div>{% endif %}</div>
       <div class="search-card-info">
         <h3 class="search-card-name">{{ card.name_ja|default:card.name }}</h3>
-        <div class="search-card-meta"><span class="card-id-badge">ID: {{ card.card_id }}</span><span
-            class="type-chip">{{ card.card_type|card_type_ja }}</span>{% if card.attribute %}<span class="attr-chip">{{
-            card.attribute|attribute_ja }}</span>{% endif %}</div>
+        <div class="search-card-meta">
+          <span class="card-id-badge">ID: {{ card.card_id }}</span>
+          <span class="type-chip">{{ card.card_type|card_type_ja }}</span>
+          {% if card.attribute %}
+          <span class="attr-chip">{{ card.attribute|attribute_ja }}</span>
+          {% endif %}
+        </div>
         <p class="search-card-desc">{{ card.description_ja|default:card.description|truncatewords:15 }}</p>
         <span class="btn-secondary"
           style="margin-top:0.5rem; display:inline-block; font-size:0.8rem; padding:0.3rem 0.8rem;">詳細を見る</span>

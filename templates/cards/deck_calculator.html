@@ -123,8 +123,11 @@
                     <td class="unit-price-cell">
                         {% if r.price_jpy %}
                         <strong class="price-jpy">¥{{ r.price_jpy|floatformat:0 }}</strong>
-                        {% if r.best_set %}<div class="price-source-note">{{ r.best_set.min_price_source|source_ja }}
-                        </div>{% endif %}
+                        {% if r.is_rakuten %}
+                        <div class="price-source-note" style="color: #ffd700;">楽天最安値</div>
+                        {% elif r.best_set %}
+                        <div class="price-source-note">海外推計: {{ r.best_set.min_price_source|source_ja }}</div>
+                        {% endif %}
                         {% else %}<span class="no-price-sm">取得不可</span>{% endif %}
                     </td>
                     <td class="subtotal-cell">
@@ -151,8 +154,8 @@
         <div class="total-box-label">デッキ合計 参考価格</div>
         <div class="total-box-price">¥{{ total_jpy|floatformat:0 }}</div>
         <div class="total-box-note">
-            ※ 国際市場（TCGプレイヤー・カードマーケット等）の参照価格を円換算した目安です。<br>
-            国内実売価格とは異なる場合があります。
+            ※ 楽天最安値が存在しないカードは、国際市場（TCGプレイヤー・カードマーケット等）の参照価格を円換算した目安を使用しています。<br>
+            実際の国内実売価格とは異なる場合があります。
         </div>
     </div>
     {% endif %}

@@ -32,6 +32,10 @@ class Card(models.Model):
     # Page view count for popularity ranking
     view_count = models.IntegerField(default=0, verbose_name='アクセス数')
 
+    # Rakuten Ichiba min price (JPY)
+    rakuten_min_price = models.IntegerField(null=True, blank=True, verbose_name='楽天最安値 (¥)')
+    rakuten_affiliate_url = models.URLField(max_length=1000, blank=True, null=True, verbose_name='楽天アフィリエイトURL')
+
     # Images (URLs from YGOPRODeck CDN — referenced, not downloaded)
     # Primary artwork (artwork index 0)
     image_url = models.URLField(max_length=500, blank=True, verbose_name='カード画像URL')
@@ -71,6 +75,32 @@ class Card(models.Model):
     def primary_artwork(self):
         """Return the first (primary/TCG) artwork."""
         return self.artworks.order_by('artwork_index').first()
+
+    @property
+    def official_url(self):
+        """公式データベースへの検索リンク"""
+        if self.konami_id:
+            return f"https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid={self.konami_id}"
+        import urllib.parse
+        name = self.name_ja if self.name_ja else self.name
+        query = urllib.parse.quote(name)
+        return f"https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&sess=1&keyword={query}&stype=1"
+
+    @property
+    def wiki_url(self):
+        """遊戯王Wikiへのページリンク（EUC-JPエンコード）"""
+        import urllib.parse
+        from .utils import to_full_width_for_wiki
+        name = self.name_ja if self.name_ja else self.name
+        name_fw = to_full_width_for_wiki(name)
+        try:
+            encoded_name = name_fw.encode('euc-jp', errors='ignore')
+            brackets = '《'.encode('euc-jp') + encoded_name + '》'.encode('euc-jp')
+            query = urllib.parse.quote(brackets)
+            return f"https://yugioh-wiki.net/index.php?{query}"
+        except Exception:
+            query = urllib.parse.quote(f"site:yugioh-wiki.net {name}")
+            return f"https://www.google.com/search?q={query}"
 
 
 class CardSet(models.Model):

@@ -3,17 +3,25 @@
 {% block title %}{{ card.name_ja|default:card.name }} | 遊戯王カード{% endblock %}
 {% block content %}
 <div class="card-detail-page">
-  <nav class="breadcrumb"><a href="{% url 'cards:ranking' %}">ランキング</a><span>›</span><span>{{
-      card.name_ja|default:card.name }}</span></nav>
+  <nav class="breadcrumb">
+    <a href="{% url 'cards:ranking' %}">ランキング</a>
+    <span>›</span>
+    <span>{{ card.name_ja|default:card.name }}</span>
+  </nav>
   <div class="card-detail-layout">
     <aside class="card-visual-col">
       <div class="card-detail-img-wrap" id="artwork-display">
-        {% with artworks.first as first_art %}{% if first_art %}<img src="{{ first_art.image_url }}"
-          alt="{{ card.name_ja|default:card.name }}" class="card-detail-img" id="main-card-img">{% elif card.image_url
-        %}<img src="{{ card.image_url }}" alt="{{ card.name_ja|default:card.name }}" class="card-detail-img"
-          id="main-card-img">{% else %}<div class="card-img-placeholder-lg"><span>☆</span>
+        {% if artworks.first %}
+        <img src="{{ artworks.first.image_url }}" alt="{{ card.name_ja|default:card.name }}" class="card-detail-img"
+          id="main-card-img">
+        {% elif card.image_url %}
+        <img src="{{ card.image_url }}" alt="{{ card.name_ja|default:card.name }}" class="card-detail-img"
+          id="main-card-img">
+        {% else %}
+        <div class="card-img-placeholder-lg"><span>☆</span>
           <p>画像なし</p>
-        </div>{% endif %}{% endwith %}
+        </div>
+        {% endif %}
         <div class="card-detail-glow"></div>
       </div>
       {% if artworks.count > 1 %}
@@ -24,8 +32,9 @@
           <button class="art-thumb-btn {% if forloop.first %}active{% endif %}"
             onclick="switchArt('{{ art.image_url }}',this)" title="{{ art.label }}">
             <img src="{{ art.image_url_small }}" alt="{{ forloop.counter }}" loading="lazy">
-            <span class="art-label">{% if forloop.first %}通常{% else %}{% if art.is_ocg %}OCG{% endif %}{{
-              forloop.counter }}{% endif %}</span>
+            <span class="art-label">
+              {% if forloop.first %}通常{% else %}{% if art.is_ocg %}OCG{% endif %}{{ forloop.counter }}{% endif %}
+            </span>
           </button>
           {% endfor %}
         </div>
@@ -35,44 +44,72 @@
     <div class="card-detail-main">
       <header class="card-detail-header">
         <h1 class="card-detail-name">{{ card.name_ja|default:card.name }}</h1>
-        <div class="card-stats-inline">
-          {% if card.atk is not None %}<div class="stat-inline"><span>攻撃力</span><span class="stat-v atk">{{ card.atk
-              }}</span></div>{% endif %}
-          {% if card.def_points is not None %}<div class="stat-inline"><span>守備力</span><span class="stat-v def">{{
-              card.def_points }}</span></div>{% endif %}
-          {% if card.linkval is not None %}<div class="stat-inline"><span>リンク</span><span class="stat-v lv">{{
-              card.linkval }} {{ card.linkmarkers|link_arrows }}</span></div>
-          {% elif card.level is not None %}
-          {% if 'xyz' in card.card_type|lower or 'Xyz' in card.card_type %}<div class="stat-inline">
-            <span>ランク</span><span class="stat-v lv">★{{ card.level }}</span>
-          </div>{% else %}<div class="stat-inline">
-            <span>レベル</span><span class="stat-v lv">★{{ card.level }}</span>
-          </div>{% endif %}
-          {% endif %}
-          {% if card.scale is not None %}<div class="stat-inline"><span>Pスケール</span><span class="stat-v lv"
-              style="color:#00c4cc;">♦ {{ card.scale }}</span></div>{% endif %}
-        </div>
-        <div class="card-detail-badges">
+        <div class="card-detail-badges" style="margin-top: 0.5rem;">
           <span class="card-id-badge-lg">ID: {{ card.card_id }}</span>
-          <span class="type-chip" style="font-weight:bold;">{{ card|detailed_race }}</span>
-          {% if card.attribute %}<span class="attr-chip">{{ card.attribute|attribute_ja }}</span>{% endif %}
         </div>
       </header>
-      <section class="card-effect-section">
+
+      <section class="card-effect-section" style="margin-top: 1.5rem;">
         <h2 class="section-title">カード効果</h2>
         <div class="card-effect-box">
           <p>{{ card.description_ja|default:card.description|linebreaksbr }}</p>
         </div>
       </section>
-      <section class="shop-links-section" style="margin-top: 2rem;">
+
+      <section class="reference-links-section" style="margin-top: 1.5rem;">
+        <h2 class="section-title">カード情報リンク</h2>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.5rem;">
+          <a href="{{ card.official_url }}" target="_blank" rel="noopener noreferrer" class="btn-secondary"
+            style="background:#0a192f; border:1px solid #64ffda; color:#64ffda; text-decoration:none; padding:0.5rem 1rem; border-radius:4px;">
+            公式データベース
+          </a>
+          <a href="{{ card.wiki_url }}" target="_blank" rel="noopener noreferrer" class="btn-secondary"
+            style="background:#2d0a31; border:1px solid #d881ff; color:#eebbff; text-decoration:none; padding:0.5rem 1rem; border-radius:4px;">
+            遊戯王Wiki
+          </a>
+        </div>
+      </section>
+
+      <div class="card-price-spotlight"
+        style="margin-top: 2rem; padding: 1.5rem; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+        {% if card.rakuten_min_price %}
+        <div style="font-size: 0.9rem; color: #aaa;">国内参考価格 (楽天最安値)</div>
+        <div style="font-size: 2rem; font-weight: bold; color: #ffd700;">¥{{ card.rakuten_min_price|floatformat:0 }}
+        </div>
+
+        {% if card.rakuten_affiliate_url %}
+        <div style="margin-top: 1rem;">
+          <a href="{{ card.rakuten_affiliate_url }}" target="_blank" rel="noopener noreferrer" class="btn-primary"
+            style="display: inline-block; padding: 0.8rem 2rem; font-weight: bold; font-size: 1.1rem;">
+            <i class="fas fa-shopping-cart"></i> 楽天市場で最安値を見る
+          </a>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div style="font-size: 0.9rem; color: #888;">価格情報なし</div>
+        {% endif %}
+      </div>
+
+      <section class="shop-links-section" style="margin-top: 1.5rem;">
         <h2 class="section-title">最新価格の検索</h2>
-        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;">
-          <a href="https://shopping.yahoo.co.jp/search?p={{ card.name|urlencode }}&first=1" target="_blank"
-            rel="noopener noreferrer"
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.5rem;">
+          {% if YAHOO_AFFILIATE_BASE_URL %}
+          <a href="{{ YAHOO_AFFILIATE_BASE_URL }}https%3A%2F%2Fshopping.yahoo.co.jp%2Fsearch%3Fp%3D{{ card.name_ja|default:card.name|urlencode }}%26first%3D1"
+            target="_blank" rel="noopener noreferrer"
             style="flex: 1; display: inline-block; padding: 1rem; text-align: center; background: #ff0033; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; border: 1px solid rgba(255,255,255,0.2);">
             <i class="fas fa-shopping-cart"></i> ヤフーショッピングで検索
           </a>
-          <a href="https://www.amazon.co.jp/s?k={{ card.name|urlencode }}+遊戯王" target="_blank" rel="noopener noreferrer"
+          {% else %}
+          <a href="https://shopping.yahoo.co.jp/search?p={{ card.name_ja|default:card.name|urlencode }}&first=1"
+            target="_blank" rel="noopener noreferrer"
+            style="flex: 1; display: inline-block; padding: 1rem; text-align: center; background: #ff0033; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; border: 1px solid rgba(255,255,255,0.2);">
+            <i class="fas fa-shopping-cart"></i> ヤフーショッピングで検索
+          </a>
+          {% endif %}
+
+          <a href="https://www.amazon.co.jp/s?k={{ card.name_ja|default:card.name|urlencode }}+遊戯王{% if AMAZON_TRACKING_ID %}&tag={{ AMAZON_TRACKING_ID }}{% endif %}"
+            target="_blank" rel="noopener noreferrer"
             style="flex: 1; display: inline-block; padding: 1rem; text-align: center; background: #FF9900; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; border: 1px solid rgba(255,255,255,0.2);">
             <i class="fab fa-amazon"></i> Amazonで検索
           </a>

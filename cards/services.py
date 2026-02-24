@@ -5,7 +5,7 @@ import logging
 from decimal import Decimal, InvalidOperation
 from django.utils import timezone
 from .models import Card, CardSet, CardArtwork
-from . import api_client
+from . import api_client, rakuten_api
 
 logger = logging.getLogger(__name__)
 
@@ -152,6 +152,17 @@ def sync_ja_data(card: 'Card', ja_data: dict) -> None:
         card.name_ja = name_ja or card.name_ja
         card.description_ja = desc_ja or card.description_ja
 
+    # 楽天の最安値を取得して更新 (日本語名が存在する場合)
+    if card.name_ja:
+        rakuten_price, rakuten_url = rakuten_api.fetch_min_price(card.name_ja)
+        if rakuten_price is not None:
+            Card.objects.filter(pk=card.pk).update(
+                rakuten_min_price=rakuten_price,
+                rakuten_affiliate_url=rakuten_url
+            )
+            card.rakuten_min_price = rakuten_price
+            card.rakuten_affiliate_url = rakuten_url
+
     # Update Japanese set names where available from API (often empty or English)
     for raw_set in ja_data.get('card_sets', []):
         set_code = raw_set.get('set_code', '')
@@ -207,7 +218,10 @@ def update_all_prices(max_cards: int = 500) -> int:
     for card in cards:
         api_data = api_client.fetch_card_by_id(card.card_id)
         if api_data:
-            sync_card_from_api_data(api_data)
+            synced_card = sync_card_from_api_data(api_data)
+            # 日本語データと楽天価格の更新も行う
+            ja_data = api_client.fetch_card_ja_by_id(card.card_id)
+            sync_ja_data(synced_card, ja_data)
             updated += 1
         else:
             # Mark all sets as price-unavailable

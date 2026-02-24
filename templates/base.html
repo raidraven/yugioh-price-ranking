@@ -33,7 +33,8 @@
         </div>
       </a>
 
-      <form action="{% url 'cards:search' %}" method="get" class="header-search" role="search">
+      <form action="{% url 'cards:search' %}" method="get" class="header-search" role="search"
+        style="position: relative;">
         <input type="search" name="q" id="header-search-input" placeholder="カード名で検索... (例: ブラック・マジシャン)"
           value="{{ request.GET.q|default:'' }}" autocomplete="off" aria-label="カード検索">
         <button type="submit" class="search-btn" aria-label="検索">
@@ -42,6 +43,9 @@
             <path d="m21 21-4.35-4.35" />
           </svg>
         </button>
+        <div id="search-suggestions" class="search-suggestions"
+          style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-card); border: 1px solid var(--border-gold); border-radius: 4px; z-index: 1000; max-height: 400px; overflow-y: auto; box-shadow: var(--shadow-card);">
+        </div>
       </form>
 
       <nav class="site-nav">
@@ -101,6 +105,75 @@
     }
     createStars('stars', 120);
     createStars('stars2', 60);
+
+    // Search Autocomplete Suggestion Logic
+    document.addEventListener("DOMContentLoaded", function () {
+      const input = document.getElementById("header-search-input");
+      const suggestionsBox = document.getElementById("search-suggestions");
+      let timeout = null;
+
+      if (!input || !suggestionsBox) return;
+
+      input.addEventListener("input", function () {
+        clearTimeout(timeout);
+        const query = this.value.trim();
+
+        if (query.length < 2) {
+          suggestionsBox.style.display = "none";
+          return;
+        }
+
+        timeout = setTimeout(() => {
+          fetch(`/search/suggest/?q=${encodeURIComponent(query)}`)
+            .then(res => res.json())
+            .then(data => {
+              if (data.results && data.results.length > 0) {
+                suggestionsBox.innerHTML = '';
+                data.results.forEach(item => {
+                  const div = document.createElement("a");
+                  div.href = `/card/${item.id}/`;
+                  div.className = "suggest-item";
+                  div.style.cssText = "display: flex; align-items: center; padding: 0.5rem; text-decoration: none; color: var(--text-primary); border-bottom: 1px solid var(--border-dim); transition: background 0.2s;";
+                  div.onmouseover = () => div.style.background = "var(--bg-card-hover)";
+                  div.onmouseout = () => div.style.background = "transparent";
+
+                  const img = document.createElement("img");
+                  img.src = item.image_url || "";
+                  img.style.cssText = "width: 30px; height: 44px; object-fit: cover; margin-right: 10px; border-radius: 2px;";
+
+                  const text = document.createElement("div");
+                  const name = document.createElement("div");
+                  name.textContent = item.name;
+                  name.style.fontWeight = "bold";
+                  name.style.fontSize = "0.9rem";
+                  const type = document.createElement("div");
+                  type.textContent = item.type || "";
+                  type.style.fontSize = "0.7rem";
+                  type.style.color = "var(--text-muted)";
+
+                  text.appendChild(name);
+                  text.appendChild(type);
+
+                  if (item.image_url) div.appendChild(img);
+                  div.appendChild(text);
+                  suggestionsBox.appendChild(div);
+                });
+                suggestionsBox.style.display = "block";
+              } else {
+                suggestionsBox.style.display = "none";
+              }
+            })
+            .catch(err => console.error(err));
+        }, 300);
+      });
+
+      // Hide suggestions when clicking outside
+      document.addEventListener("click", function (e) {
+        if (e.target !== input && e.target !== suggestionsBox && !suggestionsBox.contains(e.target)) {
+          suggestionsBox.style.display = "none";
+        }
+      });
+    });
   </script>
   {% block extra_js %}{% endblock %}
 </body>

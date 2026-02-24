@@ -33,7 +33,6 @@
         <h2 class="card-name">{{ cs.card.name_ja|default:cs.card.name }}</h2>
         <div class="card-meta-row">
           <span class="card-id-badge">ID: {{ cs.card.card_id }}</span>
-          <span class="rarity-badge">{{ cs.set_rarity|rarity_ja }}</span>
         </div>
         <div class="card-type-row">
           <span class="type-chip">{{ cs.card.card_type|card_type_ja }}</span>
@@ -41,15 +40,21 @@
           {% if cs.card.race %}<span class="race-chip">{{ cs.card.race|race_ja }}</span>{% endif %}
         </div>
         <p class="card-desc-short">{{ cs.card.description_ja|default:cs.card.description|truncatewords:18 }}</p>
+        <div class="set-info">{{ cs.set_name_ja|default:cs.set_name }} ({{ cs.set_code }})</div>
       </div>
-      <div class="price-panel" style="display:flex; align-items:center; justify-content:center; padding: 1rem;">
-        <span class="btn-secondary" style="font-size:0.9rem; padding:0.5rem 1rem;">詳細と最新価格を見る</span>
+      <div class="price-panel"
+        style="display:flex; align-items:center; justify-content:center; padding: 1rem; flex-direction: column; gap: 0.5rem;">
+        {% if cs.card.rakuten_min_price %}
+        <div style="font-weight: bold; color: #ffd700; font-size: 1.2rem;">¥{{ cs.card.rakuten_min_price|floatformat:0
+          }} <span style="font-size: 0.7rem; color: #888; font-weight: normal;">(楽天)</span></div>
+        {% else %}
+        <div style="font-size: 0.9rem; color: #666;">価格取得中...</div>
+        {% endif %}
+        <a href="{% url 'cards:card_detail' cs.card.card_id %}" class="btn-primary detail-btn"
+          style="font-size:0.9rem; padding:0.5rem 1rem; color: white;">詳細を見る →</a>
       </div>
-      <div class="set-info">{{ cs.set_name_ja|default:cs.set_name }} ({{ cs.set_code }})</div>
-      <a href="{% url 'cards:card_detail' cs.card.card_id %}" class="detail-btn">詳細を見る →</a>
-  </div>
-  </article>
-  {% endfor %}
+    </article>
+    {% endfor %}
   </div>
 </section>
 {% else %}

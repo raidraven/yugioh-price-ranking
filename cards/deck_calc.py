@@ -183,15 +183,22 @@ def _get_best_set(card):
     return cs or card.card_sets.first()
 
 
-def _jpy(best_set) -> int:
-    """Convert best_set price to JPY integer."""
+def _jpy(card, best_set) -> tuple[int, bool]:
+    """
+    Convert to JPY integer. Returns (price, is_rakuten).
+    Prefers Card.rakuten_min_price if available.
+    """
+    if card and card.rakuten_min_price is not None and card.rakuten_min_price > 0:
+        return card.rakuten_min_price, True
+
     if not best_set or not best_set.min_price:
-        return 0
+        return 0, False
+        
     from django.conf import settings
     usd_rate = getattr(settings, 'USD_TO_JPY_RATE', 150)
     eur_rate = getattr(settings, 'EUR_TO_JPY_RATE', 160)
     rate = eur_rate if best_set.min_price_source == 'Cardmarket' else usd_rate
-    return round(float(best_set.min_price) * rate)
+    return round(float(best_set.min_price) * rate), False
 
 
 def _find_card_by_name(name: str):
@@ -240,13 +247,14 @@ def lookup_cards_from_names(card_list: list[tuple[str, int]]) -> tuple[list, lis
         card = _find_card_by_name(name)
         if card:
             best = _get_best_set(card)
-            price = _jpy(best)
+            price, is_rakuten = _jpy(card, best)
             results.append({
                 'card': card,
                 'count': count,
                 'best_set': best,
                 'price_jpy': price,
                 'subtotal_jpy': price * count,
+                'is_rakuten': is_rakuten,
             })
         else:
             not_found.append(name)
@@ -271,13 +279,14 @@ def lookup_cards_from_ids(id_counter: Counter) -> tuple[list, list]:
                 card = services.sync_card_from_api_data(data)
         if card:
             best = _get_best_set(card)
-            price = _jpy(best)
+            price, is_rakuten = _jpy(card, best)
             results.append({
                 'card': card,
                 'count': count,
                 'best_set': best,
                 'price_jpy': price,
                 'subtotal_jpy': price * count,
+                'is_rakuten': is_rakuten,
             })
         else:
             not_found.append(f'ID:{card_id}')

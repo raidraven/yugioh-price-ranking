@@ -14,10 +14,13 @@ def get_wiki_sets(card_name: str) -> list[str]:
     """
     if not card_name:
         return []
+    
+    from .utils import to_full_width_for_wiki
+    card_name_fw = to_full_width_for_wiki(card_name)
 
     # Wiki URL encoding: EUC-JP bytes in URL, format is 《Card Name》
     try:
-        encoded_name = card_name.encode('euc-jp', errors='ignore')
+        encoded_name = card_name_fw.encode('euc-jp', errors='ignore')
         brackets = '《'.encode('euc-jp') + encoded_name + '》'.encode('euc-jp')
         query = urllib.parse.quote(brackets)
         url = f'https://yugioh-wiki.net/index.php?{query}'
@@ -57,6 +60,33 @@ def get_wiki_sets(card_name: str) -> list[str]:
         logger.warning(f"Wiki scrape failed for {card_name}: {e}")
         return []
 
+def get_wiki_description(card_name: str) -> str:
+    """
+    Scrape the full Japanese card text (including Pendulum effects) from yugioh-wiki.net.
+    """
+    if not card_name:
+        return ""
+    from .utils import to_full_width_for_wiki
+    card_name_fw = to_full_width_for_wiki(card_name)
+    
+    try:
+        encoded_name = card_name_fw.encode('euc-jp', errors='ignore')
+        brackets = '《'.encode('euc-jp') + encoded_name + '》'.encode('euc-jp')
+        query = urllib.parse.quote(brackets)
+        url = f'https://yugioh-wiki.net/index.php?{query}'
+        
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (YugiohPriceApp)'})
+        with urllib.request.urlopen(req, timeout=10) as response:
+            html = response.read().decode('euc-jp', errors='ignore')
+            m = re.search(r'<pre>(.*?)</pre>', html, re.DOTALL)
+            if m:
+                text = m.group(1).strip()
+                text = re.sub(r'<[^>]+>', '', text)
+                return text
+    except Exception as e:
+        logger.warning(f"Wiki description scrape failed for {card_name}: {e}")
+    return ""
+
 def apply_wiki_sets_to_card(card: Card) -> bool:
     """
     Fetch wiki data and try to match it against local CardSets via Set Codes.
@@ -66,10 +96,20 @@ def apply_wiki_sets_to_card(card: Card) -> bool:
         return False
 
     raw_sets = get_wiki_sets(card.name_ja)
-    if not raw_sets:
-        return False
-
+    wiki_desc = get_wiki_description(card.name_ja)
+    
     updates_made = False
+
+    # 1. Update description_ja if wiki description is present and different.
+    # We no longer strictly check for specific characters to allow Normal Monsters.
+    if wiki_desc and card.description_ja != wiki_desc:
+        Card.objects.filter(pk=card.pk).update(description_ja=wiki_desc)
+        card.description_ja = wiki_desc
+        updates_made = True
+
+    if not raw_sets:
+        return updates_made
+        
     # YGOPRODeck only provides TCG sets (e.g. LOB-001) even for language=ja.
     # Yu-Gi-Oh Wiki provides OCG sets (e.g. EX-06, PHNI-JP001).
     # Since codes rarely match, we create distinct CardSet records for the Japanese OCG sets.
@@ -103,17 +143,18 @@ def apply_wiki_sets_to_card(card: Card) -> bool:
             code = name
         
         if name:
-            obj, created = CardSet.objects.get_or_create(
+            obj, created = CardSet.objects.update_or_create(
                 card=card,
-                set_name_ja=name,
                 set_code=code,
                 defaults={
-                    'set_name': name, # fallback english name as same
+                    'set_name_ja': name,
+                    'set_name': name,
                     'set_rarity': rarity,
-                    'price_available': False
                 }
             )
             if created:
+                obj.price_available = False
+                obj.save()
                 updates_made = True
 
     return updates_made

@@ -2,6 +2,7 @@ import logging
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db import models
 from django.db.models import Q
+from django.conf import settings
 from .models import Card, CardSet
 from . import services, api_client
 
@@ -105,6 +106,33 @@ def search_view(request):
     })
 
 
+from django.http import JsonResponse
+
+def search_suggest(request):
+    """
+    Auto-complete endpoint for the search bar.
+    Returns JSON of top 10 matching cards.
+    """
+    query = request.GET.get('q', '').strip()
+    if not query:
+        return JsonResponse({'results': []})
+    
+    cards = Card.objects.filter(
+        Q(name_ja__icontains=query) | Q(name__icontains=query)
+    ).order_by('-view_count')[:10]
+    
+    results = [
+        {
+            'id': c.card_id,
+            'name': c.name_ja or c.name,
+            'image_url': c.image_url_small,
+            'type': c.card_type
+        }
+        for c in cards
+    ]
+    return JsonResponse({'results': results})
+
+
 def card_detail_view(request, card_id: int):
     """
     Card detail page. If card is not in DB, fetch and store it first.
@@ -134,6 +162,8 @@ def card_detail_view(request, card_id: int):
         'has_price': has_price,
         'best_set': best_set,
         'artworks': artworks,
+        'AMAZON_TRACKING_ID': getattr(settings, 'AMAZON_TRACKING_ID', ''),
+        'YAHOO_AFFILIATE_BASE_URL': getattr(settings, 'YAHOO_AFFILIATE_BASE_URL', ''),
     })
 
 
