@@ -56,6 +56,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'yugioh_price.context_processors.google_analytics',
             ],
         },
     },
@@ -114,3 +115,5 @@ SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 
+# Google Analytics
+GOOGLE_ANALYTICS_ID = env('GOOGLE_ANALYTICS_ID', default=None)
